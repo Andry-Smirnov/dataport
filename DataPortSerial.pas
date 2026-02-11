@@ -82,7 +82,6 @@ type
     TxData: AnsiString;
     SleepInterval: Integer;
     TxPortionSize: Integer;  // max bytes to send in one operation
-    CommProp: TCommProp;
     constructor Create(AParent: TDataPortUART); reintroduce;
     destructor Destroy(); override;
     property SafeMode: Boolean read FSafeMode write FSafeMode;
@@ -136,21 +135,6 @@ type
     property SerialClient: TSerialClient read FSerialClient;
 
   published
-    { Serial port name (COM1, /dev/ttyS01) }
-    property Port: string read FPort write FPort;
-    { BaudRate - connection speed (50..4000000 bits per second), default 9600 }
-    property BaudRate: Integer read FBaudRate write SetBaudRate;
-    { DataBits - default 8  (5 for Baudot code, 7 for true ASCII) }
-    property DataBits: Integer read FDataBits write SetDataBits;
-    { Parity - (N - None, O - Odd, E - Even, M - Mark or S - Space) default N }
-    property Parity: AnsiChar read FParity write SetParity;
-    { StopBits - (stb1, stb15, stb2), default stb1 }
-    property StopBits: TSerialStopBits read FStopBits write SetStopBits;
-    { FlowControl - (sfcNone, sfcSend, sfcReady, sfcSoft) default sfcNone }
-    property FlowControl: TSerialFlowControl read FFlowControl write SetFlowControl;
-    { Minimum bytes in incoming buffer to trigger OnDataAppear }
-    property MinDataBytes: Integer read FMinDataBytes write FMinDataBytes;
-    property Active;
     property OnDataAppear;
     property OnError;
     property OnOpen;
@@ -249,6 +233,9 @@ var
   HardFlow: Boolean;
   iStopBits: Integer;
   DataSize: Integer;
+  {$IFDEF MSWINDOWS}
+  CommProp: TCommProp;
+  {$ENDIF}
 begin
   sLastError := '';
   SoftFlow := False;
@@ -286,12 +273,14 @@ begin
         OnConnectEvent(Self);
     end;
 
+    {$IFDEF MSWINDOWS}
     // get comm proprties
     if GetCommProperties(Serial.Handle, CommProp) then
     begin
       if CommProp.dwCurrentTxQueue > 0 then
         TxPortionSize := CommProp.dwCurrentTxQueue;
     end;
+    {$ENDIF}
 
     while not Terminated do
     begin
